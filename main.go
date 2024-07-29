@@ -22,13 +22,16 @@ func main() {
 
 	i := &atomic.Int64{}
 	i.Store(5)
+
+	mCtx, mCancel := context.WithCancel(ctx)
 	m := mouse{
 		interval: i,
 		logo:     logo,
 		cancel:   cancel,
 		ctx:      ctx,
+		mCancel:  mCancel,
 	}
-	go m.do(ctx)
+	go m.do(mCtx)
 	systray.Run(m.onReady, m.onExit)
 }
 
@@ -36,6 +39,7 @@ type mouse struct {
 	interval *atomic.Int64
 	logo     []byte
 	cancel   func()
+	mCancel  func()
 	ctx      context.Context
 }
 
@@ -67,6 +71,10 @@ func (m *mouse) onReady() {
 					continue
 				}
 				m.interval.Store(inter)
+				m.mCancel()
+				ctx, cancel := context.WithCancel(m.ctx)
+				m.mCancel = cancel
+				go m.do(ctx)
 			}
 		case <-m.ctx.Done():
 			return
@@ -82,20 +90,20 @@ func (m *mouse) onExit() {
 
 func (m *mouse) do(ctx context.Context) {
 	has := false
+	tick := time.NewTicker(time.Duration(m.interval.Load()) * time.Second)
+	defer tick.Stop()
 	for {
-		if has {
-			robotgo.MoveRelative(1, 1)
-			has = false
-		} else {
-			robotgo.MoveRelative(-1, -1)
-			has = true
-		}
-		time.Sleep(time.Duration(m.interval.Load()) * time.Second)
-
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-tick.C:
+			if has {
+				robotgo.MoveRelative(1, 1)
+				has = false
+			} else {
+				robotgo.MoveRelative(-1, -1)
+				has = true
+			}
 		}
 	}
 }
