@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -45,8 +46,7 @@ type mouse struct {
 
 func (m *mouse) onReady() {
 	systray.SetIcon(m.logo)
-	systray.SetTitle("鼠标抖动")
-	systray.SetTooltip("鼠标抖动")
+	systray.SetTooltip("鼠标抖动\n间隔时间: 5 秒")
 
 	timeCh := systray.AddMenuItem("修改间隔时间", "")
 
@@ -75,6 +75,7 @@ func (m *mouse) onReady() {
 				ctx, cancel := context.WithCancel(m.ctx)
 				m.mCancel = cancel
 				go m.do(ctx)
+				systray.SetTooltip(fmt.Sprintf("鼠标抖动\n间隔时间: %v 秒", inter))
 			}
 		case <-m.ctx.Done():
 			return
@@ -92,16 +93,20 @@ func (m *mouse) do(ctx context.Context) {
 	has := false
 	tick := time.NewTicker(time.Duration(m.interval.Load()) * time.Second)
 	defer tick.Stop()
+
+	move := int(robotgo.ScaleF() * 1)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-tick.C:
 			if has {
-				robotgo.MoveRelative(1, 1)
+
+				robotgo.MoveRelative(move, move)
 				has = false
 			} else {
-				robotgo.MoveRelative(-1, -1)
+				robotgo.MoveRelative(-move, -move)
 				has = true
 			}
 		}
