@@ -9,7 +9,7 @@ import (
 
 	"context"
 
-	"fyne.io/systray"
+	"github.com/getlantern/systray"
 	"github.com/go-vgo/robotgo"
 	"github.com/ncruces/zenity"
 )
