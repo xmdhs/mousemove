@@ -51,7 +51,6 @@ func main() {
 		mCancel:  mCancel,
 	}
 	go m.do(mCtx)
-	go run(ctx)
 	systray.Run(m.onReady, m.onExit)
 }
 
@@ -110,8 +109,7 @@ func (m *mouse) onExit() {
 
 func (m *mouse) do(ctx context.Context) {
 	has := false
-	tick := time.NewTicker(time.Duration(m.interval.Load()) * time.Second)
-	defer tick.Stop()
+	c := time.Tick(time.Duration(m.interval.Load()) * time.Second)
 
 	move := int(robotgo.ScaleF() * 1)
 
@@ -119,15 +117,15 @@ func (m *mouse) do(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-tick.C:
+		case <-c:
 			if has {
-
 				robotgo.MoveRelative(move, move)
 				has = false
 			} else {
 				robotgo.MoveRelative(-move, -move)
 				has = true
 			}
+			hideWindows()
 		}
 	}
 }
@@ -171,38 +169,29 @@ func minimizeWindow(hwnd syscall.Handle) {
 	procShowWindow.Call(uintptr(hwnd), SW_MINIMIZE)
 }
 
-func run(ctx context.Context) {
-	c := time.Tick(1 * time.Minute)
-	for {
-		hidesList := []syscall.Handle{}
-		needHide := true
+func hideWindows() {
+	hidesList := []syscall.Handle{}
+	needHide := true
 
-		err := enumWindows(func(hwnd syscall.Handle, lParam uintptr) bool {
-			if !isWindowVisible(hwnd) {
-				return true
-			}
-			title := getWindowText(hwnd)
-			if strings.Contains(title, "企业微信") {
-				hidesList = append(hidesList, hwnd)
-			}
-			if strings.Contains(title, "RustDesk") {
-				needHide = false
-			}
+	err := enumWindows(func(hwnd syscall.Handle, lParam uintptr) bool {
+		if !isWindowVisible(hwnd) {
 			return true
-		}, 0)
-		if err != nil {
-			log.Println("发生错误：", err)
 		}
-		if needHide {
-			for _, v := range hidesList {
-				minimizeWindow(v)
-			}
+		title := getWindowText(hwnd)
+		if strings.Contains(title, "企业微信") {
+			hidesList = append(hidesList, hwnd)
 		}
-
-		select {
-		case <-c:
-		case <-ctx.Done():
-			return
+		if strings.Contains(title, "RustDesk") {
+			needHide = false
+		}
+		return true
+	}, 0)
+	if err != nil {
+		log.Println("发生错误：", err)
+	}
+	if needHide {
+		for _, v := range hidesList {
+			minimizeWindow(v)
 		}
 	}
 }
