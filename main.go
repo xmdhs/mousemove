@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -144,13 +145,14 @@ func enumWindows(callback enumWindowsProc, lParam uintptr) error {
 	if ret == 0 {
 		return err
 	}
+	runtime.KeepAlive(cb)
 	return nil
 }
 
 // 获取窗口标题
 func getWindowText(hwnd syscall.Handle) string {
 	length, _, _ := procGetWindowTextLengthW.Call(uintptr(hwnd))
-	if length == 0 {
+	if length == 0 || length > 32767 {
 		return ""
 	}
 	buf := make([]uint16, length+1)
@@ -166,7 +168,7 @@ func isWindowVisible(hwnd syscall.Handle) bool {
 
 // 最小化窗口
 func minimizeWindow(hwnd syscall.Handle) {
-	procShowWindow.Call(uintptr(hwnd), SW_MINIMIZE)
+	procShowWindow.Call(uintptr(hwnd), uintptr(SW_MINIMIZE))
 }
 
 func hideWindows() {
