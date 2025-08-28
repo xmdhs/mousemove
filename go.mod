@@ -1,6 +1,7 @@
 module github.com/xmdhs/mousemove
 
 go 1.22.1
+toolchain go1.24.1
 
 require (
 	github.com/getlantern/systray v1.2.2
@@ -41,6 +42,6 @@ require (
 	github.com/vcaesar/tt v0.20.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/image v0.18.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 )
